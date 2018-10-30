@@ -2,8 +2,8 @@ import pgzrun
 import math
 
 class TurtleActor(object):
-    def __init__(self, color, *args, **kwargs):
-        self.__dict__['_actor'] = Actor(color + '_tank', *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        self.__dict__['_actor'] = Actor(*args, **kwargs)
         self.velocity = 0
         
     def __getattr__(self, attr):
@@ -41,9 +41,13 @@ class TurtleActor(object):
         if self.velocity > 0:
             self.velocity /= 1.1
         
-red_tank = TurtleActor('red')
+class TankActor(TurtleActor):
+    def __init__(self, color):
+        super().__init__(color + '_tank')
+
+red_tank = TankActor('red')
 red_tank.topright = 0, 10
-blue_tank = TurtleActor('blue')
+blue_tank = TankActor('blue')
 blue_tank.topright = 200, 200
 WIDTH = 500
 HEIGHT = 500
