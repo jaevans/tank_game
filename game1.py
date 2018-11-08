@@ -37,6 +37,7 @@ class TankActor(TurtleActor):
     def __init__(self, color):
         super().__init__(color + '_tank')
         self.velocity = 0
+        self.bullet = None
 
     def set_velocity(self, value):
         self.velocity = value
@@ -55,11 +56,23 @@ class TankActor(TurtleActor):
             self.bottom = 0
         if self.bottom < 0:
             self.top = HEIGHT
+        if self.bullet is not None:
+            self.bullet.move()
+            if not self.bullet.onscreen():
+                self.bullet = None
 
 class BulletActor(TurtleActor):
-    def __init__ (self,color):
+    def __init__ (self,color,angle):
         super().__init__(color + '_bullet')
+        self.angle = angle
 
+    def move(self):
+        self.forward(15)
+
+    def onscreen(self):
+        screenrect = Rect((0,0), (screen.width, screen.height))
+        return screenrect.contains(self._rect)        
+        
 red_tank = TankActor('red')
 red_tank.topleft = 10, 10
 blue_tank = TankActor('blue')
@@ -67,18 +80,17 @@ blue_tank.bottomright = 490, 490
 blue_tank.turnleft (180)
 WIDTH = 500
 HEIGHT = 500
-red_bullet = BulletActor('red')
-red_bullet.bottomright= 200,200
-blue_bullet = BulletActor('blue')
-blue_bullet.bottomright = 300,300
 velocity = 0
 
 def draw():
-    screen.clear()
-    screen.fill('white')
-    red_bullet.draw()
-    blue_bullet.draw()
+    screen.blit('arena',(0,0))
+    if red_tank.bullet is not None:
+        red_tank.bullet.draw()
+    if blue_tank.bullet is not None:
+        blue_tank.bullet.draw()
     red_tank.draw()
+    draw.rect(screen.surface, red_tank._rect, width=2)
+    #screen.rect(, 'white')
     blue_tank.draw()
 
 def update():
@@ -93,6 +105,16 @@ def update():
         red_tank.turnleft(5)
     if keyboard[keys.D]:
         red_tank.turnright(5)
+    if keyboard[keys.E]:
+        if red_tank.bullet is None:
+            red_tank.bullet = BulletActor('red', red_tank.angle)
+            red_tank.bullet.center = red_tank.center
+    if red_tank.bullet is not None:
+        if red_tank.bullet._rect.colliderect(blue_tank._rect):
+            red_tank.bullet = None
+    if blue_tank.bullet is not None:
+        if blue_tank.bullet._rect.colliderect(red_tank._rect):
+            blue_tank.bullet = None
 
     blue_tank.move()
     if keyboard[keys.UP]:
@@ -105,5 +127,10 @@ def update():
         blue_tank.turnleft(5)
     if keyboard[keys.RIGHT]:
         blue_tank.turnright(5)
+    if keyboard[keys.M]:
+        if blue_tank.bullet is None:
+            blue_tank.bullet = BulletActor('blue', blue_tank.angle)
+            blue_tank.bullet.center = blue_tank.center
+        
 
 pgzrun.go()
