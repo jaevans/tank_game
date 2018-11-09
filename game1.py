@@ -1,5 +1,6 @@
 import pgzrun
 import math
+import pygame
 
 class TurtleActor(object):
     def __init__(self, *args, **kwargs):
@@ -83,15 +84,17 @@ HEIGHT = 500
 velocity = 0
 
 def draw():
-    screen.blit('arena',(0,0))
+    #screen.blit('arena',(0,0))
+    screen.fill('white')
     if red_tank.bullet is not None:
         red_tank.bullet.draw()
     if blue_tank.bullet is not None:
         blue_tank.bullet.draw()
     red_tank.draw()
-    draw.rect(screen.surface, red_tank._rect, width=2)
+    pygame.draw.rect(screen.surface, pygame.Color('black'), red_tank._rect, 2)
     #screen.rect(, 'white')
     blue_tank.draw()
+    pygame.draw.rect(screen.surface, pygame.Color('black'), blue_tank._rect, 2)
 
 def update():
     red_tank.move()
