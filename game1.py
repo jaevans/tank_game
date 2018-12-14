@@ -1,6 +1,7 @@
 import pgzrun
 import math
 import pygame
+import ptext
 
 class TurtleActor(object):
     def __init__(self, *args, **kwargs):
@@ -75,6 +76,9 @@ class TankActor(TurtleActor):
     def resetfire(self):
         self.canfire = True
 
+    def damage(self):
+        self.hp -= 1
+
 
 class BulletActor(TurtleActor):
     def __init__ (self,color,angle):
@@ -96,6 +100,7 @@ blue_tank.turnleft (180)
 WIDTH = 500
 HEIGHT = 500
 velocity = 0
+gameover = False
 
 def draw():
     screen.blit('arena',(0,0))
@@ -107,8 +112,17 @@ def draw():
     #draw.rect(screen.surface, red_tank._rect, width=2)
     #screen.rect(, 'white')
     blue_tank.draw()
-
+    ptext.draw(str(red_tank.hp), (10,HEIGHT-25), surf=screen.surface,fontsize=30, color='#cc0600', owidth=1, ocolor='#3d85c6')
+    ptext.draw(str(blue_tank.hp), (WIDTH-35, 5), surf=screen.surface,fontsize=30, color='#3d85c6', owidth=1, ocolor='#cc0600')
+    if gameover:
+        if blue_tank.hp == 0:
+            ptext.draw('RED VICTORY', center=(WIDTH/2, HEIGHT/2), align='center', surf=screen.surface,fontsize=60, color='#cc0600', owidth=1, ocolor='#3d85c6')
+        else:
+            ptext.draw('BLUE VICTORY', center=(WIDTH/2, HEIGHT/2), align='center', surf=screen.surface,fontsize=60, color='#3d85c6', owidth=1, ocolor='#cc0600')
 def update():
+    global gameover
+    if gameover:
+        return
     red_tank.move()
     if keyboard[keys.W]:
         if red_tank.velocity <= 5:
@@ -124,11 +138,12 @@ def update():
         rdist = (blue_tank.x - red_tank.bullet.x)**2 + (blue_tank.y - red_tank.bullet.y)**2
         if rdist < 30**2:
             red_tank.bullet = None
-    if blue_tank.bullet is not None:
-        bdist = (red_tank.x - blue_tank.bullet.x)**2 + (red_tank.y - blue_tank.bullet.y)**2
-        if bdist < 30**2:
-           blue_tank.bullet = None
-
+            blue_tank.damage()
+            if blue_tank.hp == 0:
+                gameover = True
+    
+                    
+    
     blue_tank.move()
     if keyboard[keys.UP]:
         if blue_tank.velocity <= 5:
@@ -140,6 +155,13 @@ def update():
         blue_tank.turnleft(2.5)
     if keyboard[keys.RIGHT]:
         blue_tank.turnright(2.5)
+    if blue_tank.bullet is not None:
+        bdist = (red_tank.x - blue_tank.bullet.x)**2 + (red_tank.y - blue_tank.bullet.y)**2
+        if bdist < 30**2:
+           blue_tank.bullet = None
+           red_tank.damage()
+           if red_tank.hp == 0:
+                gameover = True
         
 def on_key_down(key):
     if key == keys.E:
