@@ -2,6 +2,7 @@ import pgzrun
 import math
 import pygame
 import ptext
+import random
 
 class TurtleActor(object):
     def __init__(self, *args, **kwargs):
@@ -33,8 +34,7 @@ class TurtleActor(object):
     
     def turnright(self, angle):
         self._actor.angle -= angle
-
-        
+   
 class TankActor(TurtleActor):
     def __init__(self, color):
         super().__init__(color + '_tank')
@@ -91,7 +91,24 @@ class BulletActor(TurtleActor):
     def onscreen(self):
         screenrect = Rect((0,0), (screen.width, screen.height))
         return screenrect.contains(self._rect)        
-        
+
+HEALTH = 1
+SPEED = 2
+RAPID = 3
+CONFUSION = 4
+
+POWER_IMAGES = {
+    HEALTH: 'health',
+    SPEED: 'speed',
+    RAPID: 'rapid',
+    CONFUSION: 'confusion',
+    }
+    
+class PowerActor(Actor):
+    def __init__ (self,power):
+        super().__init__(POWER_IMAGES[power])
+        self.power = power
+
 red_tank = TankActor('red')
 red_tank.topleft = 10, 10
 blue_tank = TankActor('blue')
@@ -101,6 +118,7 @@ WIDTH = 500
 HEIGHT = 500
 velocity = 0
 gameover = False
+powerup = None
 
 def draw():
     screen.blit('arena',(0,0))
@@ -119,6 +137,9 @@ def draw():
             ptext.draw('RED VICTORY', center=(WIDTH/2, HEIGHT/2), align='center', surf=screen.surface,fontsize=60, color='#cc0600', owidth=1, ocolor='#3d85c6')
         else:
             ptext.draw('BLUE VICTORY', center=(WIDTH/2, HEIGHT/2), align='center', surf=screen.surface,fontsize=60, color='#3d85c6', owidth=1, ocolor='#cc0600')
+    if powerup:
+        powerup.draw()
+
 def update():
     global gameover
     if gameover:
@@ -135,15 +156,16 @@ def update():
     if keyboard[keys.D]:
         red_tank.turnright(2.5)
     if red_tank.bullet is not None:
-        rdist = (blue_tank.x - red_tank.bullet.x)**2 + (blue_tank.y - red_tank.bullet.y)**2
+        rdist = distance(blue_tank, red_tank.bullet)
         if rdist < 30**2:
             red_tank.bullet = None
             blue_tank.damage()
             if blue_tank.hp == 0:
                 gameover = True
-    
-                    
-    
+    rpowerdist = distance(red_tank, powerup)
+    if rpowerdist < 30**2:
+        red_tank.damage()
+                
     blue_tank.move()
     if keyboard[keys.UP]:
         if blue_tank.velocity <= 5:
@@ -156,17 +178,32 @@ def update():
     if keyboard[keys.RIGHT]:
         blue_tank.turnright(2.5)
     if blue_tank.bullet is not None:
-        bdist = (red_tank.x - blue_tank.bullet.x)**2 + (red_tank.y - blue_tank.bullet.y)**2
+        bdist = distance(red_tank, blue_tank.bullet)
         if bdist < 30**2:
            blue_tank.bullet = None
            red_tank.damage()
            if red_tank.hp == 0:
                 gameover = True
-        
+
+    
+    
 def on_key_down(key):
     if key == keys.E:
         red_tank.fire()
     if key == keys.M:
         blue_tank.fire()
+
+def distance(p1, p2):
+    return (p1.x-p2.x)**2 + (p1.y-p2.y)**2
+
+POWERDELAY = 5.0
+
+def createpower():
+    global powerup
+    powerup = PowerActor(random.randint(HEALTH, CONFUSION))
+    clock.schedule(createpower , POWERDELAY)
+    powerup.center = (random.randint(64, WIDTH-64), random.randint(64,HEIGHT-64))
+
+clock.schedule(createpower , POWERDELAY)
 
 pgzrun.go()
