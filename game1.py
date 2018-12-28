@@ -119,7 +119,6 @@ HEIGHT = 500
 velocity = 0
 gameover = False
 powerup = None
-
 def draw():
     screen.blit('arena',(0,0))
     if red_tank.bullet is not None:
@@ -142,6 +141,7 @@ def draw():
 
 def update():
     global gameover
+    global powerup
     if gameover:
         return
     red_tank.move()
@@ -162,10 +162,13 @@ def update():
             blue_tank.damage()
             if blue_tank.hp == 0:
                 gameover = True
-    rpowerdist = distance(red_tank, powerup)
-    if rpowerdist < 30**2:
-        red_tank.damage()
-                
+    if powerup is not None:
+        rpowerdist = distance(red_tank, powerup)
+        if rpowerdist < 30**2:
+            red_tank.damage()
+            #createpower()
+            powerup = None
+            
     blue_tank.move()
     if keyboard[keys.UP]:
         if blue_tank.velocity <= 5:
@@ -185,8 +188,6 @@ def update():
            if red_tank.hp == 0:
                 gameover = True
 
-    
-    
 def on_key_down(key):
     if key == keys.E:
         red_tank.fire()
