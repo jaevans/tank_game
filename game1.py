@@ -45,7 +45,9 @@ class TankActor(TurtleActor):
         self.hp = 10
         self.speedmult = 1
         self.firedelay = 1.0
+        self.confused = False
         self.keys = []
+        self.confusedkeys = []
         
     def set_velocity(self, value):
         self.velocity = value
@@ -88,6 +90,15 @@ class TankActor(TurtleActor):
     def resetfiredelay(self):
         self.firedelay = 1.0
 
+    def getkeys(self, confused):
+        if confused:
+            return self.confusedkeys
+        else:
+            return self.keys
+
+    def resetconfusion(self):
+        self.confused = False
+
 class BulletActor(TurtleActor):
     def __init__ (self,color,angle):
         super().__init__(color + '_bullet')
@@ -128,7 +139,9 @@ blue_tank = TankActor('blue')
 blue_tank.bottomright = 490, 490
 blue_tank.turnleft (180)
 red_tank.keys = [keys.W, keys.S, keys.A, keys.D]
+red_tank.confusedkeys = [keys.S, keys.W, keys.D, keys.A]
 blue_tank.keys = [keys.UP, keys.DOWN, keys.LEFT, keys.RIGHT]
+blue_tank.confusedkeys = [keys.DOWN, keys.UP, keys.RIGHT, keys.LEFT]
 WIDTH = 500
 HEIGHT = 500
 velocity = 0
@@ -142,8 +155,6 @@ def draw():
     if blue_tank.bullet is not None:
         blue_tank.bullet.draw()
     red_tank.draw()
-    #draw.rect(screen.surface, red_tank._rect, width=2)
-    #screen.rect(, 'white')
     blue_tank.draw()
     ptext.draw(str(red_tank.hp), (10,HEIGHT-25), surf=screen.surface,fontsize=30, color='#cc0600', owidth=1, ocolor='#3d85c6')
     ptext.draw(str(blue_tank.hp), (WIDTH-35, 5), surf=screen.surface,fontsize=30, color='#3d85c6', owidth=1, ocolor='#cc0600')
@@ -161,15 +172,16 @@ def update():
     if gameover:
         return
     red_tank.move()
-    if keyboard[keys.W]:
+    mykeys = red_tank.getkeys(blue_tank.confused)
+    if keyboard[mykeys[FWDKEY]]:
         if red_tank.velocity <= 5 * red_tank.speedmult:
             red_tank.velocity += .5 * red_tank.speedmult
-    if keyboard[keys.S]:
+    if keyboard[mykeys[BACKKEY]]:
         if red_tank.velocity >= -5 * red_tank.speedmult:
          red_tank.velocity -= .5 * red_tank.speedmult
-    if keyboard[keys.A]:
+    if keyboard[mykeys[LEFTKEY]]:
         red_tank.turnleft(2.5)
-    if keyboard[keys.D]:
+    if keyboard[mykeys[RIGHTKEY]]:
         red_tank.turnright(2.5)
     if red_tank.bullet is not None:
         rdist = distance(blue_tank, red_tank.bullet)
@@ -180,15 +192,16 @@ def update():
                 gameover = True
             
     blue_tank.move()
-    if keyboard[keys.UP]:
+    mykeys = blue_tank.getkeys(red_tank.confused)
+    if keyboard[mykeys[FWDKEY]]:
         if blue_tank.velocity <= 5:
             blue_tank.velocity += .5
-    if keyboard[keys.DOWN]:
+    if keyboard[mykeys[BACKKEY]]:
         if blue_tank.velocity >= -5:
          blue_tank.velocity -= .5
-    if keyboard[keys.LEFT]:
+    if keyboard[mykeys[LEFTKEY]]:
         blue_tank.turnleft(2.5)
-    if keyboard[keys.RIGHT]:
+    if keyboard[mykeys[RIGHTKEY]]:
         blue_tank.turnright(2.5)
     if blue_tank.bullet is not None:
         bdist = distance(red_tank, blue_tank.bullet)
@@ -213,7 +226,8 @@ def update():
                         tank.firedelay = 0.1
                         clock.schedule (tank.resetfiredelay, 5)
                     elif powerup.power == CONFUSION:
-                        pass
+                        tank.confused = True
+                        clock.schedule (tank.resetconfusion, 10)
                     powerup = None
                     break
             
