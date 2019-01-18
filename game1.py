@@ -39,7 +39,7 @@ class TankActor(TurtleActor):
     def __init__(self, color):
         super().__init__(color + '_tank')
         self.velocity = 0
-        self.bullet = None
+        self.bullets = []
         self.color = color
         self.canfire = True
         self.hp = 10
@@ -66,16 +66,21 @@ class TankActor(TurtleActor):
             self.bottom = 0
         if self.bottom < 0:
             self.top = HEIGHT
-        if self.bullet is not None:
-            self.bullet.move()
-            if not self.bullet.onscreen():
-                self.bullet = None
+        live_bullets = []
+        for new_bullet in self.bullets:
+            print(self.bullets)
+            new_bullet.move()
+            print(new_bullet.x, new_bullet.y)
+            if new_bullet.onscreen():
+                live_bullets.append(new_bullet)
+        self.bullets = live_bullets
 
     def fire(self):
-        if self.bullet is None and self.canfire == True:
-            self.bullet = BulletActor(self.color, self.angle)
-            self.bullet.center = self.center
+        if self.canfire == True:
+            new_bullet = BulletActor(self.color, self.angle)
+            new_bullet.center = self.center
             self.canfire = False
+            self.bullets.append(new_bullet)
             clock.schedule(self.resetfire , self.firedelay)
 
     def resetfire(self):
@@ -150,10 +155,10 @@ powerup = None
 
 def draw():
     screen.blit('arena',(0,0))
-    if red_tank.bullet is not None:
-        red_tank.bullet.draw()
-    if blue_tank.bullet is not None:
-        blue_tank.bullet.draw()
+    for b in red_tank.bullets:
+        b.draw()
+    for b in blue_tank.bullets:
+        b.draw()
     red_tank.draw()
     blue_tank.draw()
     ptext.draw(str(red_tank.hp), (10,HEIGHT-25), surf=screen.surface,fontsize=30, color='#cc0600', owidth=1, ocolor='#3d85c6')
@@ -183,13 +188,16 @@ def update():
         red_tank.turnleft(2.5)
     if keyboard[mykeys[RIGHTKEY]]:
         red_tank.turnright(2.5)
-    if red_tank.bullet is not None:
-        rdist = distance(blue_tank, red_tank.bullet)
+    uncollided_bullets = []
+    for b in red_tank.bullets:
+        rdist = distance(blue_tank, b)
         if rdist < 30**2:
-            red_tank.bullet = None
             blue_tank.damage()
             if blue_tank.hp == 0:
                 gameover = True
+        else:
+            uncollided_bullets.append(b)
+    red_tank.bullets = uncollided_bullets
             
     blue_tank.move()
     mykeys = blue_tank.getkeys(red_tank.confused)
@@ -203,14 +211,15 @@ def update():
         blue_tank.turnleft(2.5)
     if keyboard[mykeys[RIGHTKEY]]:
         blue_tank.turnright(2.5)
-    if blue_tank.bullet is not None:
-        bdist = distance(red_tank, blue_tank.bullet)
+    for b in blue_tank.bullets:
+        bdist = distance(red_tank, b)
         if bdist < 30**2:
-           blue_tank.bullet = None
            red_tank.damage()
            if red_tank.hp == 0:
                 gameover = True
-
+        else:
+            uncollided_bullets.append(b)
+    blue_tank.bullets = uncollided_bullets
     if powerup is not None:
         for tank in [red_tank, blue_tank]:
             rpowerdist = distance(tank, powerup)
@@ -243,10 +252,11 @@ def distance(p1, p2):
 POWERDELAY = 5.0
 
 def createpower():
-    global powerup
-    powerup = PowerActor(random.randint(HEALTH, CONFUSION))
-    clock.schedule(createpower , POWERDELAY)
-    powerup.center = (random.randint(64, WIDTH-64), random.randint(64,HEIGHT-64))
+    if not gameover == True:
+        global powerup
+        powerup = PowerActor(random.randint(HEALTH, CONFUSION))
+        clock.schedule(createpower , POWERDELAY)
+        powerup.center = (random.randint(64, WIDTH-64), random.randint(64,HEIGHT-64))
 
 clock.schedule(createpower , POWERDELAY)
 
