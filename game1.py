@@ -42,12 +42,13 @@ class TankActor(TurtleActor):
         self.bullets = []
         self.color = color
         self.canfire = True
-        self.hp = 10
+        self.hp = 10.0
         self.speedmult = 1
         self.firedelay = 1.0
         self.confused = False
         self.keys = []
         self.confusedkeys = []
+        self.dmg = 1.0 #Damage that the bullet does
         
     def set_velocity(self, value):
         self.velocity = value
@@ -68,9 +69,7 @@ class TankActor(TurtleActor):
             self.top = HEIGHT
         live_bullets = []
         for new_bullet in self.bullets:
-            print(self.bullets)
             new_bullet.move()
-            print(new_bullet.x, new_bullet.y)
             if new_bullet.onscreen():
                 live_bullets.append(new_bullet)
         self.bullets = live_bullets
@@ -79,6 +78,7 @@ class TankActor(TurtleActor):
         if self.canfire == True:
             new_bullet = BulletActor(self.color, self.angle)
             new_bullet.center = self.center
+            new_bullet.dmg = self.dmg
             self.canfire = False
             self.bullets.append(new_bullet)
             clock.schedule(self.resetfire , self.firedelay)
@@ -86,14 +86,15 @@ class TankActor(TurtleActor):
     def resetfire(self):
         self.canfire = True
 
-    def damage(self):
-        self.hp -= 1
+    def damage(self, dmg):
+        self.hp -= dmg
 
     def resetspeed(self):
         self.speedmult = 1
 
     def resetfiredelay(self):
         self.firedelay = 1.0
+        self.dmg = 1.0
 
     def getkeys(self, confused):
         if confused:
@@ -107,7 +108,8 @@ class TankActor(TurtleActor):
 class BulletActor(TurtleActor):
     def __init__ (self,color,angle):
         super().__init__(color + '_bullet')
-        self.angle = angle
+        self.angle = angle + ((random.random()* 10) - 5)
+        self.dmg = 1
 
     def move(self):
         self.forward(15)
@@ -132,6 +134,7 @@ FWDKEY = 0
 BACKKEY = 1
 LEFTKEY = 2
 RIGHTKEY = 3
+FIREKEY = 4
 
 class PowerActor(Actor):
     def __init__ (self,power):
@@ -143,10 +146,10 @@ red_tank.topleft = 10, 10
 blue_tank = TankActor('blue')
 blue_tank.bottomright = 490, 490
 blue_tank.turnleft (180)
-red_tank.keys = [keys.W, keys.S, keys.A, keys.D]
-red_tank.confusedkeys = [keys.S, keys.W, keys.D, keys.A]
-blue_tank.keys = [keys.UP, keys.DOWN, keys.LEFT, keys.RIGHT]
-blue_tank.confusedkeys = [keys.DOWN, keys.UP, keys.RIGHT, keys.LEFT]
+red_tank.keys = [keys.W, keys.S, keys.A, keys.D, keys.E]
+red_tank.confusedkeys = [keys.S, keys.W, keys.D, keys.A, keys.E]
+blue_tank.keys = [keys.UP, keys.DOWN, keys.LEFT, keys.RIGHT, keys.M]
+blue_tank.confusedkeys = [keys.DOWN, keys.UP, keys.RIGHT, keys.LEFT, keys.M]
 WIDTH = 500
 HEIGHT = 500
 velocity = 0
@@ -161,10 +164,12 @@ def draw():
         b.draw()
     red_tank.draw()
     blue_tank.draw()
-    ptext.draw(str(red_tank.hp), (10,HEIGHT-25), surf=screen.surface,fontsize=30, color='#cc0600', owidth=1, ocolor='#3d85c6')
-    ptext.draw(str(blue_tank.hp), (WIDTH-35, 5), surf=screen.surface,fontsize=30, color='#3d85c6', owidth=1, ocolor='#cc0600')
+    ptext.draw(int(red_tank.hp) == red_tank.hp and "%d" % red_tank.hp or "%0.1f" % red_tank.hp,
+               (10,HEIGHT-25), surf=screen.surface,fontsize=30, color='#cc0600', owidth=1, ocolor='#3d85c6')
+    ptext.draw(int(blue_tank.hp) == blue_tank.hp and "%d" % blue_tank.hp or "%0.1f" % blue_tank.hp,
+               (WIDTH-35, 5), surf=screen.surface,fontsize=30, color='#3d85c6', owidth=1, ocolor='#cc0600')
     if gameover:
-        if blue_tank.hp == 0:
+        if blue_tank.hp <= 0:
             ptext.draw('RED VICTORY', center=(WIDTH/2, HEIGHT/2), align='center', surf=screen.surface,fontsize=60, color='#cc0600', owidth=1, ocolor='#3d85c6')
         else:
             ptext.draw('BLUE VICTORY', center=(WIDTH/2, HEIGHT/2), align='center', surf=screen.surface,fontsize=60, color='#3d85c6', owidth=1, ocolor='#cc0600')
@@ -188,38 +193,45 @@ def update():
         red_tank.turnleft(2.5)
     if keyboard[mykeys[RIGHTKEY]]:
         red_tank.turnright(2.5)
+    if keyboard[mykeys[FIREKEY]]:
+        red_tank.fire()
     uncollided_bullets = []
     for b in red_tank.bullets:
         rdist = distance(blue_tank, b)
         if rdist < 30**2:
-            blue_tank.damage()
-            if blue_tank.hp == 0:
+            blue_tank.damage(b.dmg)
+            if blue_tank.hp <= 0:
                 gameover = True
         else:
             uncollided_bullets.append(b)
     red_tank.bullets = uncollided_bullets
+    uncollided_bullets = []
             
     blue_tank.move()
     mykeys = blue_tank.getkeys(red_tank.confused)
     if keyboard[mykeys[FWDKEY]]:
-        if blue_tank.velocity <= 5:
-            blue_tank.velocity += .5
+        if blue_tank.velocity <= 5 * blue_tank.speedmult:
+            blue_tank.velocity += .5 * blue_tank.speedmult
     if keyboard[mykeys[BACKKEY]]:
-        if blue_tank.velocity >= -5:
-         blue_tank.velocity -= .5
+        if blue_tank.velocity >= -5 * blue_tank.speedmult: 
+         blue_tank.velocity -= .5 * blue_tank.speedmult
     if keyboard[mykeys[LEFTKEY]]:
         blue_tank.turnleft(2.5)
     if keyboard[mykeys[RIGHTKEY]]:
         blue_tank.turnright(2.5)
+    if keyboard[mykeys[FIREKEY]]:
+        blue_tank.fire()
     for b in blue_tank.bullets:
         bdist = distance(red_tank, b)
         if bdist < 30**2:
-           red_tank.damage()
-           if red_tank.hp == 0:
+           red_tank.damage(b.dmg)
+           if red_tank.hp <= 0:
                 gameover = True
         else:
             uncollided_bullets.append(b)
     blue_tank.bullets = uncollided_bullets
+    uncollided_bullets = []
+    
     if powerup is not None:
         for tank in [red_tank, blue_tank]:
             rpowerdist = distance(tank, powerup)
@@ -233,18 +245,13 @@ def update():
                         clock.schedule(tank.resetspeed, 10)
                     elif powerup.power == RAPID:
                         tank.firedelay = 0.1
-                        clock.schedule (tank.resetfiredelay, 5)
+                        clock.schedule (tank.resetfiredelay, 2.5)
+                        tank.dmg = 0.5
                     elif powerup.power == CONFUSION:
                         tank.confused = True
                         clock.schedule (tank.resetconfusion, 10)
                     powerup = None
                     break
-            
-def on_key_down(key):
-    if key == keys.E:
-        red_tank.fire()
-    if key == keys.M:
-        blue_tank.fire()
 
 def distance(p1, p2):
     return (p1.x-p2.x)**2 + (p1.y-p2.y)**2
@@ -254,7 +261,7 @@ POWERDELAY = 5.0
 def createpower():
     if not gameover == True:
         global powerup
-        powerup = PowerActor(random.randint(HEALTH, CONFUSION))
+        powerup = PowerActor(random.randint(RAPID, RAPID))
         clock.schedule(createpower , POWERDELAY)
         powerup.center = (random.randint(64, WIDTH-64), random.randint(64,HEIGHT-64))
 
