@@ -1,6 +1,7 @@
 import pgzrun
 import math
 import pygame
+import pgzero.loaders
 import ptext
 import random
 
@@ -108,7 +109,7 @@ class TankActor(TurtleActor):
 class BulletActor(TurtleActor):
     def __init__ (self,color,angle):
         super().__init__(color + '_bullet')
-        self.angle = angle + ((random.random()* 10) - 5)
+        self.angle = angle + ((random.random()* SPREAD) - SPREAD / 2)
         self.dmg = 1
 
     def move(self):
@@ -141,23 +142,27 @@ class PowerActor(Actor):
         super().__init__(POWER_IMAGES[power])
         self.power = power
 
+WIDTH = 750
+HEIGHT = 750
+POWERDELAY = 5.0
+SPREAD = 10
 red_tank = TankActor('red')
 red_tank.topleft = 10, 10
 blue_tank = TankActor('blue')
-blue_tank.bottomright = 490, 490
+blue_tank.bottomright = WIDTH - 10, HEIGHT - 10
 blue_tank.turnleft (180)
 red_tank.keys = [keys.W, keys.S, keys.A, keys.D, keys.E]
 red_tank.confusedkeys = [keys.S, keys.W, keys.D, keys.A, keys.E]
-blue_tank.keys = [keys.UP, keys.DOWN, keys.LEFT, keys.RIGHT, keys.M]
-blue_tank.confusedkeys = [keys.DOWN, keys.UP, keys.RIGHT, keys.LEFT, keys.M]
-WIDTH = 500
-HEIGHT = 500
+blue_tank.keys = [keys.UP, keys.DOWN, keys.LEFT, keys.RIGHT, keys.RCTRL]
+blue_tank.confusedkeys = [keys.DOWN, keys.UP, keys.RIGHT, keys.LEFT, keys.RCTRL]
 velocity = 0
 gameover = False
 powerup = None
 
 def draw():
-    screen.blit('arena',(0,0))
+    background = pgzero.loaders.images.load('arena')
+    background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+    screen.blit(background, (0,0))
     for b in red_tank.bullets:
         b.draw()
     for b in blue_tank.bullets:
@@ -255,8 +260,6 @@ def update():
 
 def distance(p1, p2):
     return (p1.x-p2.x)**2 + (p1.y-p2.y)**2
-
-POWERDELAY = 5.0
 
 def createpower():
     if not gameover == True:
